@@ -33,7 +33,6 @@ module GitTool
       Git.force_push(branch_name)
     end
 
-
     desc "ca", "Commit Ammend - write/rewrite"
     def ca
       Git.commit_amend
@@ -57,7 +56,10 @@ module GitTool
     def rb
       asdf=Git.stashed?
       binding.pry
+    end
 
+    desc "clean", "Burn it to the ground"
+    def clean
     end
   end
 end
