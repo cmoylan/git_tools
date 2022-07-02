@@ -1,7 +1,7 @@
-use std::path::PathBuf;
 use clap::{Parser, Subcommand};
-use text_io::read;
 use duct::cmd;
+use std::path::PathBuf;
+use text_io::read;
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -31,10 +31,12 @@ enum Commands {
         list: bool,
     },
     /// create a new branch from a ticket number
-    Branch {
-    }
+    Branch {},
+    /// add the staged changes to the current commit
+    CommitAmmend {},
+    /// stash changes and rebase from master
+    Rebase {},
 }
-
 
 fn main() {
     let cli = Cli::parse();
@@ -71,41 +73,105 @@ fn main() {
         Some(Commands::Branch {}) => {
             branch_new();
         }
+        Some(Commands::CommitAmmend {}) => {
+            commit_amend();
+        }
+        Some(Commands::Rebase {}) => {
+            rebase();
+        }
         None => {}
     }
 }
 
-
-//function gittool-branch-create -a ticket -d "create a branch with the correct work format"
-//    git stash save (string join ' ' "GitTool - stashed to create:" $branch_name)
-//    git checkout master
-//    git pull
-//    git checkout -b $branch_name
-//
-//    set -l cmd  "(work/log-ticket \"$ticket\" \"$raw_description\")"
-//    emacsclient -q --eval $cmd
-//end
 fn branch_new() {
     println!("Ticket number:");
-    let mut ticket_no : String = read!("{}\n");
+    let mut ticket_no: String = read!("{}\n");
     ticket_no = ticket_no.trim().replace("#", "");
 
     println!("Enter a short description: ");
-    let mut desc : String = read!("{}\n");
-    desc = desc.trim().to_lowercase().replace(" ", "_");
+    let desc: String = read!("{}\n");
 
-    let branch_name : String = ["chris/", &ticket_no, "-", &desc].join("");
+    let branch_name: String = [
+        "chris/",
+        &ticket_no,
+        "-",
+        &desc.trim().to_lowercase().replace(" ", "_"),
+    ]
+    .join("");
     println!("{}", branch_name);
 
-    if cmd!("git", "stash", "save", format!("GitTool - stashed to create: {}", branch_name)).read().is_err() {
-        println!("error error");
+    // TODO must be a better way to check exit status and handle errors
+    if cmd!(
+        "git",
+        "stash",
+        "save",
+        format!("GitTool - stashed to create: {}", branch_name)
+    )
+    .run()
+    .is_err()
+    {
+        println!("Error: stashing");
+    }
+
+    if cmd!("git", "checkout", "master").run().is_err() {
+        println!("Error: checkout master")
+    }
+
+    if cmd!("git", "pull").run().is_err() {
+        println!("Error: git pull")
+    }
+
+    if cmd!("git", "checkout", "-b", &branch_name).run().is_err() {
+        println!("Error: checkout branch")
+    }
+
+    if cmd!(
+        "emacsclient",
+        "-q",
+        "--eval",
+        format!("(work/log-ticket \"{}\" \"{}\")", ticket_no, desc)
+    )
+    .run()
+    .is_err()
+    {
+        println!("Error: emacsclient");
     }
 }
 
+fn commit_amend() {
+    if cmd!("git", "commit", "--amend").run().is_err() {
+        println!("Error: checkout branch")
+    }
+}
 
+fn rebase() {
+    let branch_name = cmd!("git", "branch", "--show-current").read().unwrap();
+    let stash_name: String = ["GitTool - stashed for rebase:", &branch_name].join(" ");
 
+    if cmd!("git", "stash", "save", &stash_name).run().is_err() {
+        println!("Error: stash save")
+    }
 
+    if cmd!("git", "checkout", "master").run().is_err() {
+        println!("Error: checkout master")
+    }
 
+    if cmd!("git", "pull", "origin", "master").run().is_err() {
+        println!("Error: pull master")
+    }
+
+    if cmd!("git", "checkout", &branch_name).run().is_err() {
+        println!("Error: checkout branch")
+    }
+
+    if cmd!("git", "rebase", "master").run().is_err() {
+        println!("Error: rebase master")
+    }
+    // FIXME only do this if something was stashed, maybe with git status -s
+    //if cmd!("git", "stash", "pop").run().is_err() {
+    //    println!("Error: rebase master")
+    //}
+}
 
 //function gittool-branch-clean --d "clean old git branches"
 //    git branch | grep -v master | grep -v save
@@ -145,20 +211,6 @@ fn branch_new() {
 //  end
 //
 //  git push -f origin $branch_name
-//end
-//
-//function gittool-rebase -d "rebase current branch against master"
-//    set -l branch_name (git branch --show-current)
-//    set -l stash_name (string join ' ' "stashed for rebase" $branch_name)
-//    #echo $stash_name
-//    git stash save $stash_name
-//    git checkout master
-//    git pull origin master
-//    git checkout $branch_name
-//    git rebase master
-//    # FIXME only do this if something was stashed, maybe with git status -s
-//    git stash pop
-//    #bdb
 //end
 //
 //function gittool-last-branch -d "switch to the last non-master branch used"
