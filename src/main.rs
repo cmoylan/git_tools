@@ -59,6 +59,7 @@ fn main() {
         _ => println!("Don't be crazy"),
     }
 
+
     // You can check for the existence of subcommands, and if found use their
     // matches just as you would the top level cmd
     //
@@ -79,7 +80,8 @@ fn main() {
         Some(Commands::Rebase {}) => {
             rebase();
         }
-        None => {}
+        None => {
+        }
     }
 }
 
@@ -90,6 +92,8 @@ fn branch_new() {
 
     println!("Enter a short description: ");
     let desc: String = read!("{}\n");
+
+    let master_branch = master_branch();
 
     let branch_name: String = [
         "chris/",
@@ -113,7 +117,7 @@ fn branch_new() {
         println!("Error: stashing");
     }
 
-    if cmd!("git", "checkout", "master").run().is_err() {
+    if cmd!("git", "checkout", &master_branch).run().is_err() {
         println!("Error: checkout master")
     }
 
@@ -140,11 +144,12 @@ fn branch_new() {
 
 fn commit_amend() {
     if cmd!("git", "commit", "--amend").run().is_err() {
-        println!("Error: checkout branch")
+        panic!("Error: checkout branch")
     }
 }
 
 fn rebase() {
+    let master_branch = master_branch();
     let branch_name = cmd!("git", "branch", "--show-current").read().unwrap();
     let stash_name: String = ["GitTool - stashed for rebase:", &branch_name].join(" ");
 
@@ -152,11 +157,11 @@ fn rebase() {
         println!("Error: stash save")
     }
 
-    if cmd!("git", "checkout", "master").run().is_err() {
+    if cmd!("git", "checkout", &master_branch).run().is_err() {
         println!("Error: checkout master")
     }
 
-    if cmd!("git", "pull", "origin", "master").run().is_err() {
+    if cmd!("git", "pull", "origin", &master_branch).run().is_err() {
         println!("Error: pull master")
     }
 
@@ -164,7 +169,7 @@ fn rebase() {
         println!("Error: checkout branch")
     }
 
-    if cmd!("git", "rebase", "master").run().is_err() {
+    if cmd!("git", "rebase", &master_branch).run().is_err() {
         println!("Error: rebase master")
     }
     // FIXME only do this if something was stashed, maybe with git status -s
@@ -173,6 +178,19 @@ fn rebase() {
     //}
 }
 
+fn master_branch() -> std::string::String {
+  let branches = cmd!("git", "branch").read().unwrap();
+
+  if branches.contains("master") {
+      return "master".to_string();
+  }
+  else if branches.contains("main") {
+      return "main".to_string();
+  }
+  else {
+    panic!("could not detect master branch!");
+  }
+}
 //function gittool-branch-clean --d "clean old git branches"
 //    git branch | grep -v master | grep -v save
 //    read -l -P "Branches to be deleted. Proceed? (y/n) > " proceed
