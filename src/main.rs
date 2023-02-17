@@ -36,6 +36,8 @@ enum Commands {
     CommitAmmend {},
     /// stash changes and rebase from master
     Rebase {},
+    /// switch to master and pull
+    PullMaster {},
 }
 
 fn main() {
@@ -79,6 +81,9 @@ fn main() {
         }
         Some(Commands::Rebase {}) => {
             rebase();
+        }
+        Some(Commands::PullMaster {}) => {
+            pull_master();
         }
         None => {
         }
@@ -149,6 +154,19 @@ fn commit_amend() {
 }
 
 fn rebase() {
+    pull_master();
+    let master_branch = master_branch();
+
+    if cmd!("git", "rebase", &master_branch).run().is_err() {
+        println!("Error: rebase master")
+    }
+    // FIXME only do this if something was stashed, maybe with git status -s
+    //if cmd!("git", "stash", "pop").run().is_err() {
+    //    println!("Error: rebase master")
+    //}
+}
+
+fn pull_master() {
     let master_branch = master_branch();
     let branch_name = cmd!("git", "branch", "--show-current").read().unwrap();
     let stash_name: String = ["GitTool - stashed for rebase:", &branch_name].join(" ");
@@ -168,14 +186,6 @@ fn rebase() {
     if cmd!("git", "checkout", &branch_name).run().is_err() {
         println!("Error: checkout branch")
     }
-
-    if cmd!("git", "rebase", &master_branch).run().is_err() {
-        println!("Error: rebase master")
-    }
-    // FIXME only do this if something was stashed, maybe with git status -s
-    //if cmd!("git", "stash", "pop").run().is_err() {
-    //    println!("Error: rebase master")
-    //}
 }
 
 fn master_branch() -> std::string::String {
@@ -191,6 +201,7 @@ fn master_branch() -> std::string::String {
     panic!("could not detect master branch!");
   }
 }
+
 //function gittool-branch-clean --d "clean old git branches"
 //    git branch | grep -v master | grep -v save
 //    read -l -P "Branches to be deleted. Proceed? (y/n) > " proceed
