@@ -160,6 +160,12 @@ fn rebase() {
     if cmd!("git", "rebase", &master_branch).run().is_err() {
         println!("Error: rebase master")
     }
+    if cmd!("bundle", "install").run().is_err() {
+        println!("Error: bundle install")
+    }
+    if cmd!("bundle", "exec", "rake", "db:migate").run().is_err() {
+        println!("Error: rake db:migrate")
+    }
     // FIXME only do this if something was stashed, maybe with git status -s
     //if cmd!("git", "stash", "pop").run().is_err() {
     //    println!("Error: rebase master")
