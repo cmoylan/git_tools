@@ -2,6 +2,7 @@ use clap::{Parser, Subcommand};
 use duct::cmd;
 use std::path::PathBuf;
 use text_io::read;
+use git2::{Repository, Branches};
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -38,6 +39,8 @@ enum Commands {
     Rebase {},
     /// switch to master and pull
     PullMaster {},
+    /// delete all branches except master
+    BranchClean {},
 }
 
 fn main() {
@@ -84,6 +87,9 @@ fn main() {
         }
         Some(Commands::PullMaster {}) => {
             pull_master();
+        }
+        Some(Commands::BranchClean {}) => {
+            branch_clean();
         }
         None => {
         }
@@ -145,6 +151,13 @@ fn branch_new() {
     {
         println!("Error: emacsclient");
     }
+
+    if cmd!("bundle", "install").run().is_err() {
+      println!("Error: bundle install")
+       }
+    if cmd!("bundle", "exec", "rake", "db:migrate").run().is_err() {
+      println!("Error: rake db:migrate")
+       }
 }
 
 fn commit_amend() {
@@ -163,7 +176,7 @@ fn rebase() {
     if cmd!("bundle", "install").run().is_err() {
         println!("Error: bundle install")
     }
-    if cmd!("bundle", "exec", "rake", "db:migate").run().is_err() {
+    if cmd!("bundle", "exec", "rake", "db:migrate").run().is_err() {
         println!("Error: rake db:migrate")
     }
     // FIXME only do this if something was stashed, maybe with git status -s
@@ -206,6 +219,15 @@ fn master_branch() -> std::string::String {
   else {
     panic!("could not detect master branch!");
   }
+}
+
+fn branch_clean() {
+  let repo = match Repository::open(".") {
+    Ok(repo) => repo,
+    Err(e) => panic!("failed to open: {}", e),
+  };
+  //git2::Branches
+
 }
 
 //function gittool-branch-clean --d "clean old git branches"

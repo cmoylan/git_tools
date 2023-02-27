@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 clap = { version = "3.2.5", features = ["derive"] }
 duct = "0.13.5"
+git2 = "0.16.1"
 text_io = "0.1.10"
