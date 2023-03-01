@@ -1,8 +1,8 @@
 use clap::{Parser, Subcommand};
 use duct::cmd;
+use git2::{BranchType, Repository};
 use std::path::PathBuf;
 use text_io::read;
-use git2::{Repository, Branches};
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -64,7 +64,6 @@ fn main() {
         _ => println!("Don't be crazy"),
     }
 
-
     // You can check for the existence of subcommands, and if found use their
     // matches just as you would the top level cmd
     //
@@ -91,8 +90,7 @@ fn main() {
         Some(Commands::BranchClean {}) => {
             branch_clean();
         }
-        None => {
-        }
+        None => {}
     }
 }
 
@@ -153,11 +151,11 @@ fn branch_new() {
     }
 
     if cmd!("bundle", "install").run().is_err() {
-      println!("Error: bundle install")
-       }
+        println!("Error: bundle install")
+    }
     if cmd!("bundle", "exec", "rake", "db:migrate").run().is_err() {
-      println!("Error: rake db:migrate")
-       }
+        println!("Error: rake db:migrate")
+    }
 }
 
 fn commit_amend() {
@@ -208,28 +206,32 @@ fn pull_master() {
 }
 
 fn master_branch() -> std::string::String {
-  let branches = cmd!("git", "branch").read().unwrap();
+    let branches = cmd!("git", "branch").read().unwrap();
 
-  if branches.contains("master") {
-      return "master".to_string();
-  }
-  else if branches.contains("main") {
-      return "main".to_string();
-  }
-  else {
-    panic!("could not detect master branch!");
-  }
+    if branches.contains("master") {
+        return "master".to_string();
+    } else if branches.contains("main") {
+        return "main".to_string();
+    } else {
+        panic!("could not detect master branch!");
+    }
 }
 
 fn branch_clean() {
-  let repo = match Repository::open(".") {
-    Ok(repo) => repo,
-    Err(e) => panic!("failed to open: {}", e),
-  };
-  //git2::Branches
+    let repo = Repository::open(".").expect("Failed to open repository");
+    let branches = repo
+        .branches(Some(BranchType::Local))
+        .expect("Failed to get branches");
 
+    for branch in branches {
+        let (mut branch, _) = branch.expect("Failed to get branch");
+        let branch_name = branch.name().expect("Failed to get branch name");
+
+        if branch_name != Some("master") {
+            branch.delete().expect("Failed to delete branch");
+        }
+    }
 }
-
 //function gittool-branch-clean --d "clean old git branches"
 //    git branch | grep -v master | grep -v save
 //    read -l -P "Branches to be deleted. Proceed? (y/n) > " proceed
