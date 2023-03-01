@@ -222,12 +222,16 @@ fn branch_clean() {
     let branches = repo
         .branches(Some(BranchType::Local))
         .expect("Failed to get branches");
+    let head = repo.head().expect("Failed to get head");
+
+    let current_branch = head.shorthand().expect("Failed to get current branch name");
+    let master_branch = master_branch();
 
     for branch in branches {
         let (mut branch, _) = branch.expect("Failed to get branch");
         let branch_name = branch.name().expect("Failed to get branch name");
 
-        if branch_name != Some("master") {
+        if branch_name != Some(&master_branch) && branch_name != Some(&current_branch) {
             branch.delete().expect("Failed to delete branch");
         }
     }
